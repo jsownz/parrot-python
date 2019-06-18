@@ -2,6 +2,7 @@
 
 import subprocess
 import optparse
+import re
 
 def get_arguments():
     parser = optparse.OptionParser()
@@ -23,5 +24,17 @@ def change_mac(interface, new_mac):
     subprocess.call(["ifconfig","eth0","hw","ether",new_mac])
     subprocess.call(["ifconfig",interface,"up"])
 
+def check_mac_address(interface, new_mac):
+    ifconfig_result = subprocess.check_output(["ifconfig", interface])
+    interface_mac = re.search(r"\w\w:\w\w:\w\w:\w\w:\w\w:\w\w", ifconfig_result)
+    if interface_mac:
+        if interface_mac.group(0) == new_mac:
+            print("[+] MAC Address changed to " + new_mac)
+        else:
+            print("[-] Could not change MAC address.")
+    else:
+        print("[-] Could not read MAC address.")
+
 options = get_arguments()
 change_mac(options.interface, options.new_mac)
+check_mac_address(options.interface, options.new_mac)

